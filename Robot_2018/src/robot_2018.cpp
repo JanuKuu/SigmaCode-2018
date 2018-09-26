@@ -130,13 +130,14 @@ public:
 
 
 	void RobotInit() {
+		/*
 		m_chooser.AddDefault(kAutoNameDefault, kAutoNameDefault);
 		m_chooser.AddObject(autoLine, autoLine);
 		m_chooser.AddObject(leftAuto, leftAuto);
 		m_chooser.AddObject(centerAuto, centerAuto);
 		m_chooser.AddObject(rightAuto, rightAuto);
 		frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
-
+	 	*/
 		Gyro->Calibrate();
 	}
 
@@ -450,6 +451,7 @@ public:
 		else //idle box
 		{
 			intake1->Set(-0.20);
+
 			intake2->Set(0.20);
 		}
 
@@ -486,6 +488,7 @@ public:
 		{
 			liftDescend();
 		}
+
 		else
 		{
 			secondElev->Set(-0.07);
@@ -535,7 +538,7 @@ public:
 		int secondEncoder1 = secondElev->GetSensorCollection().GetPulseWidthPosition();
 		printf("%i" , secondEncoder1);
 
-		//printf("%d    %d\n", firstEncoder1, secondEncoder1);
+		printf("%d    %d\n", firstEncoder1, secondEncoder1);
 
 		if (firstEncoder1 > -25000) // more neg, goes up
 		{

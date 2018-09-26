@@ -67,7 +67,7 @@ public:
 	WPI_VictorSPX * right2 = new WPI_VictorSPX(5);
 	WPI_VictorSPX * right3 = new WPI_VictorSPX(6);
 
-	WPI_TalonSRX *intakeLift = new WPI_TalonSRX(8);
+	WPI_TalonSRX *intakePivot = new WPI_TalonSRX(8);
 
 	WPI_TalonSRX *firstElev1 = new WPI_TalonSRX(7);
 	WPI_TalonSRX *secondElev = new WPI_TalonSRX(9);
@@ -83,11 +83,11 @@ public:
 	XboxController * controller = new XboxController(0);
 	bool X;
 	bool A;
-    bool Y;
+	bool Y;
 	bool B;
 	bool RB;
 	bool LB;
-//	bool LS;
+	bool LS;
 	double LT;
 	double RT;
 	double LY;
@@ -95,6 +95,11 @@ public:
 	int DP;
 	bool stateX = false;
 	bool stateRT = false;
+
+
+	XboxController * controller2 = new XboxController(1);
+	bool Y2;
+	bool A2;
 
 	bool intakeState = 0;
 	bool intakeStateFlipped = 0;
@@ -112,13 +117,15 @@ public:
     double leftDriveValue;
 	double rightDriveValue;
 
-	double rightOffset = 0.90;
+	double rightOffset = 0.95;
 
 	int rInvert = 0;
 	int cInvert = 0;
+	double cAngle = 0;
+	int cDistance = 0;
 	int autoState = 0;
 	int moveState = 0;
-
+	int baseCurrent;
 	int targetPulseWidthPosRight = 0;
 
 
@@ -158,6 +165,12 @@ public:
 				break;
 
 			case 2 :
+				if (18000 < pulseWidthPosRight && pulseWidthPosRight < 21000)
+				{
+					baseCurrent = leftDrive->GetOutputCurrent();
+					printf("%i as \n", baseCurrent);
+				}
+
 				if (pulseWidthPosRight < targetPulseWidthPosRight)
 				{
 					pulseWidthPosRight = rightDrive->GetSensorCollection().GetPulseWidthPosition();
@@ -184,29 +197,33 @@ public:
 
 		switch (resetGyro) {
 
-		case 0 :
-			Gyro->Reset();
-			resetGyro = 1;
-			break;
+			case 0 :
+				Gyro->Reset();
+				resetGyro = 1;
+				break;
 
-		case 1 :
-			double GyroAngle = Gyro->GetAngle();
+			case 1 :
+				double GyroAngle = Gyro->GetAngle();
 
-			if((angle + 0.47) > GyroAngle && (angle - 0.47) < GyroAngle) // When Gyro Angle reaches the range it stops
-			{
-				sigmaDrive(0.0, 0.0);
-				resetGyro = 0;
-				ret = 1;
-			}
-			else if((angle - 0.77) > GyroAngle) // When GyroAngle is Less it turns right
-			{
-				sigmaDrive(-0.4, -0.4);
-			}
-			else if((angle + 0.77) < GyroAngle) // When GyroAngle is Greater it turns left
-			{
-				sigmaDrive(0.4, 0.4);
-			}
-			break;
+				printf("%f  \n", GyroAngle);
+
+				if((angle - 1.0) < GyroAngle && GyroAngle < (angle + 1.0)) // When Gyro Angle reaches the range it stops
+				{
+					sigmaDrive(0.0, 0.0);
+					resetGyro = 0;
+					ret = 1;
+				}
+				else if(angle > GyroAngle) // When GyroAngle is Less it turns right
+				{
+					printf("R  ");
+					sigmaDrive(-0.5, -0.5);
+				}
+				else if(angle < GyroAngle) // When GyroAngle is Greater it turns left
+				{
+					printf("L  ");
+					sigmaDrive(0.5, 0.5);
+				}
+				break;
 		}
 
 		return ret;
@@ -220,7 +237,7 @@ public:
 		switch (autoState)
 		{
 			case 0 :
-				status = moveStraight(144, 0.65);
+				status = moveStraight(140, 0.65);
 				if(status == 1)
 				{
 					autoState = 1;
@@ -228,123 +245,39 @@ public:
 				break;
 
 			case 1 :
-				status = GyroTurn(rInvert * 90);
-				if (status == 1)
-				{
-					autoState = 2;
-				}
-				break;
-
-			case 2 :
-				status = moveStraight(12, 0.65);
-				if (status == 1)
-				{
-					autoState = 3;
-				}
-				break;
-
-			case 3 :
-				intake1->Set(0.60);
-				intake2->Set(-0.60);
-				break;
-		}
-
-    }
-    void longSideAuto(){
-    	bool status = 0;
-		switch (autoState)
-		{
-			case 0 :
-				status = moveStraight(180, 0.65);
+				status = GyroTurn(rInvert * 70);
 				if(status == 1)
 				{
-					autoState = 1;
-				}
-				break;
-
-			case 1 :
-				status = GyroTurn(rInvert * 90);
-				if (status == 1)
-				{
 					autoState = 2;
 				}
 				break;
 
 			case 2 :
-				status = moveStraight(216, 0.65);
-				if (status == 1)
+				status = moveStraight(17, 0.65);
+				sigmaLift.Set(frc::DoubleSolenoid::Value::kReverse);
+
+				if(status == 1)
 				{
 					autoState = 3;
 				}
 				break;
 
 			case 3 :
-				status = GyroTurn(rInvert * 90);
-				if (status == 1)
-				{
-					autoState = 4;
-				}
-				break;
-
-			case 4 :
-				status = moveStraight(48, 0.65);
-				if (status == 1)
-				{
-					autoState = 5;
-				}
-				break;
-
-			case 5 :
-				status = GyroTurn(rInvert * 90);
-				if (status == 1)
-				{
-					autoState = 6;
-				}
-				break;
-
-			case 6 :
-				status = moveStraight(7, 0.65);
-				if (status == 1)
-				{
-					autoState = 5;
-				}
-				break;
-
-			case 7 :
-				intake1->Set(0.60);
-				intake2->Set(-0.60);
+				intake1->Set(0.5);
+				intake2->Set(-0.5);
 				break;
 		}
     }
 
-	void leftAutoScore()
-	{
-		if(gamedata[0] == 'L')
-		{
-		    shortSideAuto();
-		}
-		else if(gamedata[0] == 'R')
-		{
-		    longSideAuto();
-		}
-	}
-	void rightAutoScore()
-	{
-        if(gamedata[0] == 'R')
-		{
-		    shortSideAuto();
-		}
-		else if(gamedata[0] == 'L')
-		{
-		    longSideAuto();
-		}
-	}
 	void centerAutoScore(){
 		bool status = 0;
+
 		switch (autoState)
 		{
 			case 0 :
-				status = moveStraight(108, 0.65);
+				sigmaIntake1.Set(frc::DoubleSolenoid::Value::kReverse);
+
+				status = moveStraight(24, 0.65);
 				if(status == 1)
 				{
 					autoState = 1;
@@ -352,7 +285,7 @@ public:
 				break;
 
 			case 1 :
-				status = GyroTurn(cInvert * -90);
+				status = GyroTurn(cInvert * cAngle);
 				if (status == 1)
 				{
 					autoState = 2;
@@ -360,37 +293,53 @@ public:
 				break;
 
 			case 2 :
-				status = moveStraight(12, 0.65);
+				status = moveStraight(cDistance, 0.65);
 				if (status == 1)
 				{
 					autoState = 3;
 				}
+				sigmaLift.Set(frc::DoubleSolenoid::Value::kReverse);
 				break;
 
 			case 3 :
-				status = GyroTurn(cInvert * 90);
-				if (status == 1)
-				{
-					autoState = 4;
-				}
-				break;
 
-			case 4 :
-				status = moveStraight(12, 0.65);
-				if (status == 1)
+				if (gamedata[0] == 'R')
 				{
-					autoState = 5;
+					sigmaDrive(0.0, 0.25);
 				}
-				break;
+				else if (gamedata[0] == 'L')
+				{
+					sigmaDrive(-0.25, 0.0);
+				}
 
-			case 5 :
-				intake1->Set(0.60);
-				intake2->Set(-0.60);
+				Wait(0.50);
+				sigmaDrive(0.0, 0.0);
+			//	Wait(1.0);
+
+				//Wait(1.5);
+				intake1->Set(0.5);
+				intake2->Set(-0.5);
+				Wait(0.3);
+				sigmaIntake1.Set(frc::DoubleSolenoid::Value::kForward);
+
 				break;
 		}
 	}
+
 	void baseLineAuto(){
-		moveStraight(108, 0.65);
+		bool status = 0;
+
+		switch (autoState)
+		{
+			case 0 :
+				status = moveStraight(120, 0.65);
+
+				if(status == 1)
+				{
+					autoState = 1;
+				}
+				break;
+		}
 	}
 
 	void AutonomousInit() override {
@@ -402,12 +351,14 @@ public:
 		if(m_autoSelected == leftAuto){rInvert = 1;}
 		else if(m_autoSelected == rightAuto){rInvert = -1;}
 
-		if(gamedata[0] == 'L'){cInvert = 1;}
-		else if(gamedata[0] == 'R'){cInvert = -1;}
+		if(gamedata[0] == 'L'){cInvert = -1; cAngle = 35.0; cDistance = 90;}
+		else if(gamedata[0] == 'R'){cInvert = 1; cAngle = 23.5; cDistance = 90;}
+
+		autoState = 0;
 	}
 
 	void AutonomousPeriodic() {
-		printf("%i rs \n", autoState);
+	//	printf("%i rs \n", autoState);
 
 		if(m_autoSelected == autoLine)
 		{
@@ -415,17 +366,30 @@ public:
 		}
 		else if(m_autoSelected == leftAuto)
 		{
-			leftAutoScore();
+			if (gamedata[0] == 'L')
+			{
+				shortSideAuto();
+			}
+			else if (gamedata[0] == 'R')
+			{
+				baseLineAuto();
+			}
 		}
 		else if(m_autoSelected == rightAuto)
 		{
-			rightAutoScore();
+			if (gamedata[0] == 'R')
+			{
+				shortSideAuto();
+			}
+			else if (gamedata[0] == 'L')
+			{
+				baseLineAuto();
+			}
 		}
 		else if(m_autoSelected == centerAuto)
 		{
 			centerAutoScore();
 		}
-
 	}
 
 	void TeleopInit() {
@@ -458,8 +422,6 @@ public:
 		liftEncoderMin1 = 0;
 		liftEncoderMax2 = 0;
 		liftEncoderMin2 = 0;
-
-
 	}
 
 	void processMotors()
@@ -475,74 +437,59 @@ public:
 		//////////////////////////////////////
 		/// intake motors
 		/////////////////////////////////////
-		if (LB)
-		{
-			intake1->Set(0.60);
-			intake2->Set(-0.60);
-		}
-		else if (RB)
+		if (LB) // pull in box
 		{
 			intake1->Set(-1.0);
 			intake2->Set(1.0);
 		}
-		else
+		else if (RB) // spit out box
 		{
-			intake1->Set(0.10);
-			intake2->Set(-0.10);
+			intake1->Set(1.0);
+			intake2->Set(-1.0);
+		}
+		else //idle box
+		{
+			intake1->Set(-0.20);
+			intake2->Set(0.20);
 		}
 
 
 		//////////////////////////////////////
 		/// intake lift motors
 		/////////////////////////////////////
-		if (A) // down
+//		int pivotEncoder = intakePivot->GetSensorCollection().GetPulseWidthPosition();
+//		printf("Pivot = %d \n", pivotEncoder);
+
+		if (A || LB) // down
 		{
-			intakeLift->Set(0.20);
-			armUp();
+			intakePivot->Set(0.50);
 		}
-		else if (B) // up
+		else if (Y) // up
 		{
-			intakeLift->Set(-0.60);
-			armUp();
+			intakePivot->Set(-0.40);
 		}
 		else
 		{
-			intakeLift->Set(-0.13);
+			intakePivot->Set(-0.13);
 		}
 
 		//////////////////////////////////////
-		/// second stage motor
+		/// elevator motors
 		/////////////////////////////////////
-		if (DP == 0)
+//		if (DP == 0)
+		if (Y2 == 1)
 		{
-	//		secondElev->Set(-0.80);
 			liftAscend();
 		}
-		else if (DP == 180)
+//		else if (DP == 180)
+		else if (A2 == 1)
 		{
-	//		secondElev->Set(0.02);
 			liftDescend();
 		}
 		else
 		{
-			secondElev->Set(-0.09);
-			firstElev1->Set(0.025);
-		}
-
-		//////////////////////////////////////
-		/// first stage motor
-		/////////////////////////////////////
-		if (DP == 90)
-		{
-		//	firstElev1->Set(-0.30);
-		}
-		else if (DP == 270)
-		{
-//			firstElev1->Set(0.80);
-		}
-		else
-		{
-	//		firstElev1->Set(0.02);
+			secondElev->Set(-0.07);
+			firstElev1->Set(0.04);
 		}
 	}
 
@@ -551,61 +498,62 @@ public:
 		int firstEncoder1 = firstElev1->GetSensorCollection().GetPulseWidthPosition();
 		int secondEncoder1 = secondElev->GetSensorCollection().GetPulseWidthPosition();
 
-		printf("%d      %d\n", firstEncoder1, secondEncoder1);
+		//printf("%d      %d\n", firstEncoder1, secondEncoder1);
+		printf("%i" , secondEncoder1);
 
-		if(firstEncoder1 < -3000) //9600 // more neg, goes up
+		if(firstEncoder1 < -1000) //9600 // more neg, goes up
 		{
-			firstElev1->Set(-0.40);
+			firstElev1->Set(-0.45);
+		}
+		else if(firstEncoder1 < 2100) //9600 // more neg, goes up
+		{
+			firstElev1->Set(-0.15);
 		}
 		else
 		{
-			firstElev1->Set(0.02);
+			firstElev1->Set(0.04);
 		}
 
-		if(secondEncoder1 > 3500) // more pos, goes up
+
+		if(secondEncoder1 > 7500) // more pos, goes up
 		{
-			secondElev->Set(0.001);
+			secondElev->Set(0.005);
+		}
+		else if(secondEncoder1 > 4000) // more pos, goes up
+		{
+			secondElev->Set(0.000);
 		}
 		else
 		{
-			secondElev->Set(-0.09);
+			secondElev->Set(-0.07);
 		}
-
 	}
 
 	void liftAscend() {
 
 		int firstEncoder1 = firstElev1->GetSensorCollection().GetPulseWidthPosition();
 		int secondEncoder1 = secondElev->GetSensorCollection().GetPulseWidthPosition();
+		printf("%i" , secondEncoder1);
 
-		printf("%d    %d\n", firstEncoder1, secondEncoder1);
+		//printf("%d    %d\n", firstEncoder1, secondEncoder1);
 
-
-		if (firstEncoder1 > -32000) // more neg, goes up
+		if (firstEncoder1 > -25000) // more neg, goes up
 		{
 			firstElev1->Set(0.90);
 		}
 		else
 		{
-			firstElev1->Set(0.025);
+			firstElev1->Set(0.04);
 		}
 
-		if(secondEncoder1 < 31030) // more pos, goes up
+		if(secondEncoder1 < 26000) // more pos, goes up
 		{
 			secondElev->Set(-0.90);
 		}
 		else
 		{
-			secondElev->Set(-0.09);
+			secondElev->Set(-0.07);
 		}
-
-	}
-
-	void armUp()
-	{
-		int encoder = intakeLift->GetSensorCollection().GetPulseWidthPosition();
-
-		printf("%d  \n", encoder);
 	}
 
 	void processPneumatics()
@@ -613,7 +561,7 @@ public:
 		//////////////////////////////////////
 		/// elevator
 		/////////////////////////////////////
-		if (X)
+		if (LS)
 		{
 			if (sigmaLift.Get() == frc::DoubleSolenoid::Value::kForward)
 			{
@@ -670,12 +618,16 @@ public:
 	//	RB = (controller->GetRawButton(6));
 		RB = (controller->GetRawButton(6));
 		LB = (controller->GetRawButton(5));
-	//	LS = (controller->GetRawButton(9));
+		LS = (controller->GetRawButtonPressed(9));
 		LT = (controller->GetRawAxis(2));
 		RT = (controller->GetRawAxis(3));
 		LY = controller->GetY(GenericHID::JoystickHand(0));
 		RY = controller->GetY(GenericHID::JoystickHand(1));
 		DP = controller->GetPOV(0);
+
+
+		Y2 = (controller2->GetRawButton(4));
+		A2 = (controller2->GetRawButton(1));
 
 
 		leftDriveValue = LY; //switch back later
@@ -686,7 +638,7 @@ public:
 
 		processMotors();
         processPneumatics();
-
+		processMotors();
 	}
 
 	void TestPeriodic() {
